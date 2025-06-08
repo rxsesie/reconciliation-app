@@ -358,10 +358,19 @@ def create_conciliation_master(
 
         # Fill in the payment data for each month
         for payment in record.payments:
-            if type(payment.payment_period) == "str":
+            # payment_period may be stored either as a string like "202502" or
+            # a datetime object. ``type(x) == "str"`` is always ``False`` for
+            # string values because ``type(x)`` returns ``str`` (the class), not
+            # the literal string "str".  This check mistakenly falls through to
+            # the ``else`` branch and causes an AttributeError when a string is
+            # encountered.  ``isinstance`` correctly handles both cases.
+            if isinstance(payment.payment_period, str):
                 month, year = parse_payment_period(payment.payment_period)
             else:
-                month, year = payment.payment_period.month, payment.payment_period.year
+                month, year = (
+                    payment.payment_period.month,
+                    payment.payment_period.year,
+                )
             if 0 <= month - 1 < 12:  # Ensure month index is valid
                 if year < CURRENT_YEAR:
                     month_data[month - 1] += f"{year} "
